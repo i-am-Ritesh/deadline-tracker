@@ -45,53 +45,48 @@ def fetch_jobs():
     for marker in soup.find_all(string=re.compile(r"Last\s*Date", re.I)):
         parent = marker.parent
         
-        # Walk up to find a container (table row, list item, or div)
+        # Walk up to find a container that has both the text and the link
         container = parent
-        for _ in range(5):
-            if container.name in ['tr', 'li', 'article']:
-                break
-            if container.name == 'div' and len(container.get_text(strip=True)) > 30:
-                break
+        for _ in range(6):
+            if not container: break
+            if container.name in ['tr', 'li', 'article', 'div']:
+                if container.find('a', href=True):
+                    break
             container = container.parent
-            if not container:
-                break
-
-        if not container:
-            continue
+            
+        if not container: continue
 
         block_text = container.get_text(" ", strip=True)
         deadline = parse_date(block_text)
         
-        # Only keep jobs that are closing in the future or closed max 2 days ago
-        if not deadline:
-            continue
+        # Skip if no date, or if it closed more than 2 days ago
+        if not deadline: continue
         days_left = (deadline - datetime.now()).days
-        if days_left < -2:
-            continue
+        if days_left < -2: continue
 
-        # Find the actual title (look for headings or bold text first)
-        title_elem = container.find(['h2', 'h3', 'h4', 'b', 'strong'])
+        # --- SMART TITLE EXTRACTION ---
+        # Split the text at "Last Date". Everything before it is the title!
+        parts = re.split(r'(?i)Last\s*Date', block_text)
+        raw_title = parts[0].strip()
         
-        # If no heading, look for a link that IS NOT "Click Here"
-        if not title_elem:
-            for a in container.find_all('a'):
-                text = a.get_text(strip=True).lower()
-                if text and "click" not in text and "apply" not in text and "read" not in text and len(text) > 8:
-                    title_elem = a
-                    break
+        # Clean up the title (remove leading dashes, colons, etc.)
+        title = re.sub(r'^[\s\-\|:]+|[\s\-\|:]+$', '', raw_title)
+        
+        # If the title is insanely long, just grab the last 100 characters (closest to the date)
+        if len(title) > 120:
+            title = title[-120:].strip()
+            
+        if not title or len(title) < 5:
+            title = "Government Job Notification"
 
-        title = title_elem.get_text(strip=True) if title_elem else "Job Notification"
-
-        # Find the link to apply
+        # Find the link
         link_elem = container.find('a', href=True)
         href = link_elem['href'] if link_elem else ""
         if href.startswith("/"):
             href = "https://rojgarresult.com" + href
 
-        # Avoid duplicates
         key = (title, deadline.isoformat())
-        if key in seen:
-            continue
+        if key in seen: continue
         seen.add(key)
 
         jobs.append({
