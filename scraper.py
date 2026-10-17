@@ -12,17 +12,8 @@ HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/120.0.0.0 Safari/537.36"
     ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Referer": "https://www.google.com/",
-    "Connection": "keep-alive",
-    "Upgrade-Insecure-Requests": "1",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "cross-site",
-    "Sec-Fetch-User": "?1",
-    "Cache-Control": "max-age=0",
 }
 
 DATE_PATTERNS = [
@@ -42,16 +33,9 @@ def parse_date(text):
     return None
 
 def fetch_jobs():
-    # Use cloudscraper to bypass the firewall blocking GitHub's servers
     scraper = cloudscraper.create_scraper()
-    
-    try:
-        resp = scraper.get(URL, headers=HEADERS, timeout=20)
-        resp.raise_for_status()
-    except Exception as e:
-        print(f"HTTP Error: {e}", file=sys.stderr)
-        raise
-
+    resp = scraper.get(URL, headers=HEADERS, timeout=20)
+    resp.raise_for_status()
     soup = BeautifulSoup(resp.content, "html.parser")
 
     jobs = []
@@ -60,42 +44,55 @@ def fetch_jobs():
     # Find every element containing "Last Date"
     for marker in soup.find_all(string=re.compile(r"Last\s*Date", re.I)):
         parent = marker.parent
+        
+        # Walk up to find a container (table row, list item, or div)
         container = parent
-        link = None
-
-        # Walk up a few levels to find an <a> tag nearby
-        for _ in range(6):
-            if container is None:
+        for _ in range(5):
+            if container.name in ['tr', 'li', 'article']:
                 break
-            link = container.find("a", href=True)
-            if link:
+            if container.name == 'div' and len(container.get_text(strip=True)) > 30:
                 break
             container = container.parent
+            if not container:
+                break
 
-        if not link:
+        if not container:
             continue
 
-        title = link.get_text(strip=True)
-        if not title or len(title) < 6:
-            continue
-
-        text = parent.get_text(" ", strip=True)
-        deadline = parse_date(text)
+        block_text = container.get_text(" ", strip=True)
+        deadline = parse_date(block_text)
+        
+        # Only keep jobs that are closing in the future or closed max 2 days ago
         if not deadline:
             continue
+        days_left = (deadline - datetime.now()).days
+        if days_left < -2:
+            continue
 
-        href = link["href"]
+        # Find the actual title (look for headings or bold text first)
+        title_elem = container.find(['h2', 'h3', 'h4', 'b', 'strong'])
+        
+        # If no heading, look for a link that IS NOT "Click Here"
+        if not title_elem:
+            for a in container.find_all('a'):
+                text = a.get_text(strip=True).lower()
+                if text and "click" not in text and "apply" not in text and "read" not in text and len(text) > 8:
+                    title_elem = a
+                    break
+
+        title = title_elem.get_text(strip=True) if title_elem else "Job Notification"
+
+        # Find the link to apply
+        link_elem = container.find('a', href=True)
+        href = link_elem['href'] if link_elem else ""
         if href.startswith("/"):
             href = "https://rojgarresult.com" + href
 
+        # Avoid duplicates
         key = (title, deadline.isoformat())
         if key in seen:
             continue
         seen.add(key)
-
-        days_left = (deadline - datetime.now()).days
-        if days_left < -30:  # skip very old entries
-            continue
 
         jobs.append({
             "title": title,
@@ -115,7 +112,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if not data:
-        print("No jobs found — selectors may need updating. Keeping old jobs.json.")
+        print("No jobs found — keeping old jobs.json.")
         sys.exit(0)
 
     with open("jobs.json", "w", encoding="utf-8") as f:
