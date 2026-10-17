@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deadline Tracker — Never Miss a Job Again</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>🔔 Deadline Tracker</h1>
+    <p class="subtitle">Sorted by nearest closing date. Never miss one again.</p>
+  </header>
+
+  <main>
+    <div id="job-list" class="job-list">
+      <p class="loading">Loading deadlines…</p>
+    </div>
+  </main>
+
+  <!-- Mascot: fixed to bottom-right, points upward at the top card -->
+  <div id="mascot-wrap" class="mascot-wrap" aria-hidden="true">
+    <svg id="mascot" viewBox="0 0 140 220" width="140" height="220">
+      <ellipse cx="70" cy="60" rx="42" ry="46" fill="#2b1a3a"/>
+      <ellipse cx="70" cy="65" rx="34" ry="38" fill="#ffd9c0"/>
+      <path d="M36 55 Q50 30 70 32 Q90 30 104 55 Q95 45 70 45 Q45 45 36 55 Z" fill="#2b1a3a"/>
+      <ellipse cx="56" cy="68" rx="6" ry="8" fill="#1a1a2e"/>
+      <ellipse cx="84" cy="68" rx="6" ry="8" fill="#1a1a2e"/>
+      <circle cx="58" cy="66" r="2" fill="#fff"/>
+      <circle cx="86" cy="66" r="2" fill="#fff"/>
+      <circle cx="48" cy="80" r="5" fill="#ff9db0" opacity="0.6"/>
+      <circle cx="92" cy="80" r="5" fill="#ff9db0" opacity="0.6"/>
+      <path d="M64 84 Q70 90 76 84" stroke="#a35a5a" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M40 110 Q70 100 100 110 L110 200 L30 200 Z" fill="#7c4dff"/>
+      <rect x="62" y="95" width="16" height="15" fill="#ffd9c0"/>
+      <g id="arm" style="transform-origin: 100px 120px;">
+        <path d="M95 120 L120 70 L128 75 L103 125 Z" fill="#7c4dff"/>
+        <path d="M118 66 L132 62 L128 75 L120 72 Z" fill="#ffd9c0"/>
+        <circle cx="134" cy="58" r="4" fill="#ffd9c0"/>
+      </g>
+      <path d="M45 120 L30 160 L38 164 L50 125 Z" fill="#7c4dff"/>
+    </svg>
+    <div id="mascot-bubble" class="mascot-bubble">Apply now!</div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
