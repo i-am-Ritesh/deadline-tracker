@@ -16,22 +16,6 @@ HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
 }
 
-DATE_PATTERNS = [
-    (r"\d{2}/\d{2}/\d{4}", "%d/%m/%Y"),
-    (r"\d{2}-\d{2}-\d{4}", "%d-%m-%Y"),
-    (r"\d{2}\.\d{2}\.\d{4}", "%d.%m.%Y"),
-]
-
-def parse_date(text):
-    for pattern, fmt in DATE_PATTERNS:
-        m = re.search(pattern, text)
-        if m:
-            try:
-                return datetime.strptime(m.group(0), fmt)
-            except ValueError:
-                continue
-    return None
-
 def fetch_jobs():
     scraper = cloudscraper.create_scraper()
     resp = scraper.get(URL, headers=HEADERS, timeout=20)
@@ -41,52 +25,44 @@ def fetch_jobs():
     jobs = []
     seen = set()
 
-    # Find every element containing "Last Date"
-    for marker in soup.find_all(string=re.compile(r"Last\s*Date", re.I)):
-        parent = marker.parent
+    # We target the specific container for each job based on your HTML file
+    for item in soup.select('.gb-loop-item'):
         
-        # Walk up to find a container that has both the text and the link
-        container = parent
-        for _ in range(6):
-            if not container: break
-            if container.name in ['tr', 'li', 'article', 'div']:
-                if container.find('a', href=True):
-                    break
-            container = container.parent
+        # 1. Extract the Title and the real link
+        title_elem = item.select_one('h2.gb-text-65bad0de a')
+        if not title_elem:
+            continue
+        
+        title = title_elem.get_text(strip=True)
+        href = title_elem.get('href', '')
+        
+        # 2. Extract the Date
+        date_elem = item.select_one('p.gb-text-423b0b64')
+        if not date_elem:
+            continue
             
-        if not container: continue
-
-        block_text = container.get_text(" ", strip=True)
-        deadline = parse_date(block_text)
+        date_text = date_elem.get_text(strip=True)
         
-        # Skip if no date, or if it closed more than 2 days ago
-        if not deadline: continue
+        # 3. Parse the Date (looking for DD/MM/YYYY)
+        match = re.search(r'(\d{2})/(\d{2})/(\d{4})', date_text)
+        if not match:
+            # Skip jobs that say "District Wise" or "Not Declared"
+            continue
+            
+        try:
+            deadline = datetime.strptime(match.group(0), "%d/%m/%Y")
+        except ValueError:
+            continue
+            
+        # 4. Filter out old jobs (only show jobs closing today or in the future)
+        # If a job closed yesterday (-1), we still hide it.
         days_left = (deadline - datetime.now()).days
-        if days_left < -2: continue
-
-        # --- SMART TITLE EXTRACTION ---
-        # Split the text at "Last Date". Everything before it is the title!
-        parts = re.split(r'(?i)Last\s*Date', block_text)
-        raw_title = parts[0].strip()
-        
-        # Clean up the title (remove leading dashes, colons, etc.)
-        title = re.sub(r'^[\s\-\|:]+|[\s\-\|:]+$', '', raw_title)
-        
-        # If the title is insanely long, just grab the last 100 characters (closest to the date)
-        if len(title) > 120:
-            title = title[-120:].strip()
-            
-        if not title or len(title) < 5:
-            title = "Government Job Notification"
-
-        # Find the link
-        link_elem = container.find('a', href=True)
-        href = link_elem['href'] if link_elem else ""
-        if href.startswith("/"):
-            href = "https://rojgarresult.com" + href
+        if days_left < 0:
+            continue
 
         key = (title, deadline.isoformat())
-        if key in seen: continue
+        if key in seen:
+            continue
         seen.add(key)
 
         jobs.append({
