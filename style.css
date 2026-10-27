@@ -129,3 +129,88 @@ body {
   .mascot-wrap svg { width: 100px; height: 160px; }
   .mascot-bubble { right: 90px; }
 }
+/* --- NEW LAYOUT FOR CHECKBOXES --- */
+.job-card {
+  display: flex;
+  justify-content: space-between; /* Pushes text left, checkboxes right */
+  align-items: center;
+  gap: 20px;
+}
+
+.job-content {
+  flex-grow: 1; /* Takes up remaining space */
+}
+
+.job-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-left: 15px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.checkbox-label:hover {
+  color: var(--text);
+}
+
+.want-label:hover { color: #FFEB3B; } /* Yellow hover */
+.done-label:hover { color: #F06292; } /* Pink hover */
+
+/* --- NEW COLORS FOR STATUS --- */
+
+/* Yellow Focus - Want to Apply */
+.job-card.status-want {
+  background-color: rgba(255, 235, 59, 0.08);
+  box-shadow: 0 0 15px rgba(255, 235, 59, 0.15);
+  border-left-color: #FFEB3B;
+}
+.job-card.status-want .checkbox-label.want-label {
+  color: #FFEB3B;
+}
+
+/* Pink Happiness - Completed */
+.job-card.status-completed {
+  background-color: rgba(240, 98, 146, 0.08);
+  box-shadow: 0 0 15px rgba(240, 98, 146, 0.15);
+  border-left-color: #F06292;
+  opacity: 0.8; /* Slightly faded since it's done */
+}
+.job-card.status-completed .checkbox-label.done-label {
+  color: #F06292;
+}
+
+/* Mobile responsiveness for small screens */
+@media (max-width: 600px) {
+  .job-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .job-actions {
+    flex-direction: row;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-left: 0;
+    padding-top: 12px;
+    width: 100%;
+    justify-content: space-around;
+  }
+}
